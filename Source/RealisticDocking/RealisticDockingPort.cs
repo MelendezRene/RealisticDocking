@@ -33,16 +33,16 @@ namespace RealisticDocking
         [KSPField(isPersistant = false)] public float hardAcquireTorque = 0.8f;
         [KSPField(isPersistant = false)] public bool verboseLogging = false;
 
-        [KSPField(isPersistant = true, guiActive = true, guiName = "Alignment assist")]
+        [KSPField(isPersistant = true, guiActive = true, guiName = "Asistencia de alineacion")]
         public bool alignmentAssistEnabled = true;
 
-        [KSPField(guiActive = true, guiName = "RD Role")] public string detectedRole = "AUTO";
-        [KSPField(guiActive = true, guiName = "RD State")] public string rdState = "IDLE";
-        [KSPField(guiActive = true, guiName = "Target port")] public string targetPortName = "NONE";
-        [KSPField(guiActive = true, guiName = "Target range", guiUnits = " m", guiFormat = "F2")] public float targetRange = 0f;
-        [KSPField(guiActive = true, guiName = "Closing rate", guiUnits = " m/s", guiFormat = "F3")] public float closingRate = 0f;
-        [KSPField(guiActive = true, guiName = "Angular error", guiUnits = " deg", guiFormat = "F2")] public float angularError = 0f;
-        [KSPField(guiActive = true, guiName = "Lateral offset", guiUnits = " m", guiFormat = "F3")] public float lateralOffset = 0f;
+        [KSPField(guiActive = true, guiName = "RD - Rol")] public string detectedRole = "AUTO";
+        [KSPField(guiActive = true, guiName = "RD - Estado")] public string rdState = "IDLE";
+        [KSPField(guiActive = true, guiName = "RD - Puerto objetivo")] public string targetPortName = "NONE";
+        [KSPField(guiActive = true, guiName = "RD - Distancia objetivo", guiUnits = " m", guiFormat = "F2")] public float targetRange = 0f;
+        [KSPField(guiActive = true, guiName = "RD - Velocidad de cierre", guiUnits = " m/s", guiFormat = "F3")] public float closingRate = 0f;
+        [KSPField(guiActive = true, guiName = "RD - Error angular", guiUnits = " deg", guiFormat = "F2")] public float angularError = 0f;
+        [KSPField(guiActive = true, guiName = "RD - Desalineacion lateral", guiUnits = " m", guiFormat = "F3")] public float lateralOffset = 0f;
 
         private ModuleDockingNode node;
         private RealisticDockingPort targetPort;
@@ -54,10 +54,18 @@ namespace RealisticDocking
         private FieldInfo nodeTransformField;
         private float nextTargetScan;
 
-        [KSPEvent(guiActive = true, guiName = "Toggle alignment assist", active = true)]
+        [KSPEvent(guiActive = true, guiName = "RD - Activar/desactivar alineacion", active = true)]
         public void ToggleAlignmentAssist()
         {
             alignmentAssistEnabled = !alignmentAssistEnabled;
+        }
+
+        [KSPEvent(guiActive = true, guiName = "RD - Buscar puerto pasivo", active = true)]
+        public void RescanPassiveTarget()
+        {
+            targetPort = null;
+            nextTargetScan = 0f;
+            rdState = IsPassiveRole() ? "PASSIVE / READY" : "SEARCHING PASSIVE";
         }
 
         public override void OnStart(StartState state)
