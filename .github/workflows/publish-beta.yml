@@ -27,7 +27,9 @@ jobs:
       - name: Build plugin
         shell: powershell
         run: |
-          msbuild Source/RealisticDocking/RealisticDocking.csproj /p:Configuration=Release /p:KSPBT_ManagedPath="$env:RUNNER_TEMP\ksp\KSP_x64_Data\Managed"
+          $managed = Join-Path $env:RUNNER_TEMP "ksp\KSP_x64_Data\Managed"
+          if (!(Test-Path (Join-Path $managed "Assembly-CSharp.dll"))) { throw "KSP references were not extracted correctly" }
+          msbuild "Source\RealisticDocking\RealisticDocking.csproj" /t:Rebuild /p:Configuration=Release "/p:KSPManaged=$managed"
       - name: Verify DLL
         shell: powershell
         run: |
