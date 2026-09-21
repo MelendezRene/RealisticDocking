@@ -1,0 +1,70 @@
+name: Publish RealisticDocking Beta
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/publish-beta.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Download stripped KSP 1.12.5 reference assemblies
+        shell: bash
+        run: |
+          wget --quiet https://github.com/KSPModdingLibs/KSPLibs/raw/main/KSP-1.12.5.zip -O /tmp/ksp.zip
+          unzip -q /tmp/ksp.zip -d /tmp/ksp
+
+      - name: Build plugin
+        shell: bash
+        env:
+          KSP_ROOT: /tmp/ksp
+        run: |
+          msbuild Source/RealisticDocking/RealisticDocking.csproj /p:Configuration=Release /p:KSPBT_ManagedPath=/tmp/ksp/KSP_x64_Data/Managed
+
+      - name: Verify DLL
+        shell: bash
+        run: |
+          test -f GameData/RealisticDocking/Plugins/RealisticDocking.dll
+          ls -lh GameData/RealisticDocking/Plugins/RealisticDocking.dll
+
+      - name: Commit compiled DLL to repository
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f GameData/RealisticDocking/Plugins/RealisticDocking.dll
+          if ! git diff --cached --quiet; then
+            git commit -m "Include compiled RealisticDocking Beta DLL [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Package installable ZIP
+        shell: bash
+        run: |
+          mkdir -p release
+          zip -r release/RealisticDocking-v0.2.0-beta.zip GameData/RealisticDocking
+
+      - name: Publish GitHub prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.2.0-beta >/dev/null 2>&1; then
+            gh release upload v0.2.0-beta release/RealisticDocking-v0.2.0-beta.zip --clobber
+          else
+            gh release create v0.2.0-beta               release/RealisticDocking-v0.2.0-beta.zip               --title "RealisticDocking Beta v0.2.0"               --target main               --prerelease               --notes "First prerelease of RealisticDocking. Includes stock PAW integration, active/passive port roles, automatic compatible passive-port detection, alignment assist, capture-state telemetry, RO/Benjee docking profiles, and Principia-friendly force/torque based control."
+          fi
