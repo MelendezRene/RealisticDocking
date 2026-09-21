@@ -1,0 +1,62 @@
+name: Build RealisticDocking
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Download stripped KSP 1.12.5 reference assemblies
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "ksp-1.12.5.zip"
+          $root = Join-Path $env:RUNNER_TEMP "ksp"
+          Invoke-WebRequest -Uri "https://github.com/KSPModdingLibs/KSPLibs/raw/main/KSP-1.12.5.zip" -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $root -Force
+          $managed = Join-Path $root "KSP_x64_Data\Managed"
+          if (-not (Test-Path (Join-Path $managed "Assembly-CSharp.dll"))) {
+            throw "Assembly-CSharp.dll was not found in stripped KSP references."
+          }
+          "KSP_MANAGED=$managed" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build plugin
+        shell: pwsh
+        run: |
+          msbuild "Source\RealisticDocking\RealisticDocking.csproj" /t:Rebuild /p:Configuration=Release "/p:KSPManaged=$env:KSP_MANAGED"
+
+      - name: Verify DLL
+        shell: pwsh
+        run: |
+          $dll = "GameData\RealisticDocking\Plugins\RealisticDocking.dll"
+          if (-not (Test-Path $dll)) { throw "RealisticDocking.dll was not produced." }
+          Get-Item $dll | Format-List Name,Length,LastWriteTime
+
+      - name: Package installable ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "dist\GameData" | Out-Null
+          Copy-Item -Recurse -Force "GameData\RealisticDocking" "dist\GameData\RealisticDocking"
+          Compress-Archive -Path "dist\GameData" -DestinationPath "RealisticDocking-v0.1.0-beta.zip" -Force
+
+      - name: Upload compiled mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: RealisticDocking-v0.1.0-beta
+          path: RealisticDocking-v0.1.0-beta.zip
+          if-no-files-found: error
