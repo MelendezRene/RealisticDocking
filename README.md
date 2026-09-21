@@ -1,5 +1,7 @@
 # RealisticDocking v0.1.0-beta
 
+[![Build RealisticDocking](https://github.com/MelendezRene/RealisticDocking/actions/workflows/build.yml/badge.svg)](https://github.com/MelendezRene/RealisticDocking/actions/workflows/build.yml)
+
 Experimental docking-realism plugin for Kerbal Space Program 1.12.5, designed with RSS/Realism Overhaul use in mind.
 
 ## Beta 0.1
