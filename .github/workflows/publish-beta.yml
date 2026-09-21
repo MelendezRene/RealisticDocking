@@ -13,58 +13,39 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
-
-      - name: Download stripped KSP 1.12.5 reference assemblies
-        shell: bash
+      - name: Download KSP 1.12.5 references
+        shell: powershell
         run: |
-          wget --quiet https://github.com/KSPModdingLibs/KSPLibs/raw/main/KSP-1.12.5.zip -O /tmp/ksp.zip
-          unzip -q /tmp/ksp.zip -d /tmp/ksp
-
+          Invoke-WebRequest -Uri "https://github.com/KSPModdingLibs/KSPLibs/raw/main/KSP-1.12.5.zip" -OutFile "$env:RUNNER_TEMP\ksp.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\ksp.zip" -DestinationPath "$env:RUNNER_TEMP\ksp" -Force
       - name: Build plugin
-        shell: bash
-        env:
-          KSP_ROOT: /tmp/ksp
+        shell: powershell
         run: |
-          msbuild Source/RealisticDocking/RealisticDocking.csproj /p:Configuration=Release /p:KSPBT_ManagedPath=/tmp/ksp/KSP_x64_Data/Managed
-
+          msbuild Source/RealisticDocking/RealisticDocking.csproj /p:Configuration=Release /p:KSPBT_ManagedPath="$env:RUNNER_TEMP\ksp\KSP_x64_Data\Managed"
       - name: Verify DLL
-        shell: bash
+        shell: powershell
         run: |
-          test -f GameData/RealisticDocking/Plugins/RealisticDocking.dll
-          ls -lh GameData/RealisticDocking/Plugins/RealisticDocking.dll
-
-      - name: Commit compiled DLL to repository
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f GameData/RealisticDocking/Plugins/RealisticDocking.dll
-          if ! git diff --cached --quiet; then
-            git commit -m "Include compiled RealisticDocking Beta DLL [skip ci]"
-            git push origin HEAD:main
-          fi
-
+          if (!(Test-Path "GameData/RealisticDocking/Plugins/RealisticDocking.dll")) { throw "RealisticDocking.dll was not produced" }
+          Get-Item "GameData/RealisticDocking/Plugins/RealisticDocking.dll"
       - name: Package installable ZIP
-        shell: bash
+        shell: powershell
         run: |
-          mkdir -p release
-          zip -r release/RealisticDocking-v0.2.0-beta.zip GameData/RealisticDocking
-
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Compress-Archive -Path GameData/RealisticDocking -DestinationPath release/RealisticDocking-v0.2.0-beta.zip -Force
       - name: Publish GitHub prerelease
-        shell: bash
+        shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v0.2.0-beta >/dev/null 2>&1; then
+          gh release view v0.2.0-beta *> $null
+          if ($LASTEXITCODE -eq 0) {
             gh release upload v0.2.0-beta release/RealisticDocking-v0.2.0-beta.zip --clobber
-          else
-            gh release create v0.2.0-beta               release/RealisticDocking-v0.2.0-beta.zip               --title "RealisticDocking Beta v0.2.0"               --target main               --prerelease               --notes "First prerelease of RealisticDocking. Includes stock PAW integration, active/passive port roles, automatic compatible passive-port detection, alignment assist, capture-state telemetry, RO/Benjee docking profiles, and Principia-friendly force/torque based control."
-          fi
+          } else {
+            gh release create v0.2.0-beta release/RealisticDocking-v0.2.0-beta.zip --title "RealisticDocking Beta v0.2.0" --target main --prerelease --notes "Test beta. Includes active/passive docking roles, automatic compatible passive-port detection, alignment assist, capture telemetry, RO/Benjee profiles, and Principia-friendly force/torque based control."
+          }
