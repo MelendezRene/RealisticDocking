@@ -37,15 +37,15 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
-          Compress-Archive -Path GameData/RealisticDocking -DestinationPath release/RealisticDocking-v0.2.0-beta.zip -Force
+          Compress-Archive -Path GameData/RealisticDocking -DestinationPath release/RealisticDocking-v0.2.1-beta.zip -Force
       - name: Publish GitHub prerelease
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view v0.2.0-beta *> $null
+          gh release view v0.2.1-beta *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload v0.2.0-beta release/RealisticDocking-v0.2.0-beta.zip --clobber
+            gh release upload v0.2.1-beta release/RealisticDocking-v0.2.1-beta.zip --clobber
           } else {
-            gh release create v0.2.0-beta release/RealisticDocking-v0.2.0-beta.zip --title "RealisticDocking Beta v0.2.0" --target main --prerelease --notes "Test beta. Includes active/passive docking roles, automatic compatible passive-port detection, alignment assist, capture telemetry, RO/Benjee profiles, and Principia-friendly force/torque based control."
+            gh release create v0.2.1-beta release/RealisticDocking-v0.2.1-beta.zip --title "RealisticDocking Beta v0.2.1" --target main --prerelease --notes "Beta 0.2.1. Extended NDS/IDA passive target tracking while keeping short-range physical alignment/capture. Includes active/passive docking roles, automatic compatible passive-port detection, alignment assist, capture telemetry, RO/Benjee profiles, and Principia-friendly force/torque based control."
           }
