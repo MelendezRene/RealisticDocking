@@ -52,11 +52,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path "dist\GameData" | Out-Null
           Copy-Item -Recurse -Force "GameData\RealisticDocking" "dist\GameData\RealisticDocking"
-          Compress-Archive -Path "dist\GameData" -DestinationPath "RealisticDocking-v0.2.0-beta.zip" -Force
+          Compress-Archive -Path "dist\GameData" -DestinationPath "RealisticDocking-v0.2.1-beta.zip" -Force
 
       - name: Upload compiled mod
         uses: actions/upload-artifact@v4
         with:
-          name: RealisticDocking-v0.2.0-beta
-          path: RealisticDocking-v0.2.0-beta.zip
+          name: RealisticDocking-v0.2.1-beta
+          path: RealisticDocking-v0.2.1-beta.zip
           if-no-files-found: error
